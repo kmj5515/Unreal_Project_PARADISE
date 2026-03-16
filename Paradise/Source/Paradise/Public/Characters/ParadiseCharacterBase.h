@@ -6,9 +6,6 @@
 #include "GameFramework/Character.h"
 #include "ParadiseCharacterBase.generated.h"
 
-//class UDirectAbilitySystemComponent;
-//class UDirectAttributeSet;
-
 UCLASS()
 class PARADISE_API AParadiseCharacterBase : public ACharacter//, public IAbilitySystemInterface, public IPawnCombatInterface
 {
