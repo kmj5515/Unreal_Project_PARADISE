@@ -17,6 +17,8 @@ class PARADISE_API AParadiseSurvivalCharacter : public AParadiseCharacterBase
 	GENERATED_BODY()
 	
 public:
+	AParadiseSurvivalCharacter();
+
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 protected:
@@ -29,6 +31,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	UInputAction* IA_Move;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	UInputAction* IA_Run;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	UInputAction* IA_Block;
@@ -42,6 +47,8 @@ protected:
 protected:
 	void Input_Look(const FInputActionValue& Value);
 	void Input_Move(const FInputActionValue& Value);
+	void Input_RunPressed(const FInputActionValue& Value);
+	void Input_RunReleased(const FInputActionValue& Value);
 	void Input_Block_Pressed(const FInputActionValue& Value);
 	void Input_Block_Released(const FInputActionValue& Value);
 	void Input_Roll(const FInputActionValue& Value);

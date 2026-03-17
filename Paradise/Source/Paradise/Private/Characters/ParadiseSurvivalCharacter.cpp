@@ -5,6 +5,15 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
 #include "GameFramework/PlayerController.h"
+#include "GameFramework/CharacterMovementComponent.h"
+
+AParadiseSurvivalCharacter::AParadiseSurvivalCharacter()
+{
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		MoveComp->MaxWalkSpeed = 230.f;
+	}
+}
 
 void AParadiseSurvivalCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
@@ -34,6 +43,13 @@ void AParadiseSurvivalCharacter::SetupPlayerInputComponent(UInputComponent* Play
 		if (IA_Move)
 		{
 			EnhancedInput->BindAction(IA_Move, ETriggerEvent::Triggered, this, &AParadiseSurvivalCharacter::Input_Move);
+		}
+
+		if (IA_Run)
+		{
+			// 누르고 있는 동안만 Run (500), 떼면 Walk (230)
+			EnhancedInput->BindAction(IA_Run, ETriggerEvent::Started, this, &AParadiseSurvivalCharacter::Input_RunPressed);
+			EnhancedInput->BindAction(IA_Run, ETriggerEvent::Completed, this, &AParadiseSurvivalCharacter::Input_RunReleased);
 		}
 
 		if (IA_Block)
@@ -80,6 +96,22 @@ void AParadiseSurvivalCharacter::Input_Move(const FInputActionValue& Value)
 
 	AddMovementInput(ForwardDir, MoveAxis.Y);
 	AddMovementInput(RightDir, MoveAxis.X);
+}
+
+void AParadiseSurvivalCharacter::Input_RunPressed(const FInputActionValue& Value)
+{
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		MoveComp->MaxWalkSpeed = 500.f;
+	}
+}
+
+void AParadiseSurvivalCharacter::Input_RunReleased(const FInputActionValue& Value)
+{
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		MoveComp->MaxWalkSpeed = 230.f;
+	}
 }
 
 void AParadiseSurvivalCharacter::Input_Block_Pressed(const FInputActionValue& Value)
