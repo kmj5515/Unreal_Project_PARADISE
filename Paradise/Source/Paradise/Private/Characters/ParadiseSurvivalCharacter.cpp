@@ -6,6 +6,8 @@
 #include "InputActionValue.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Weapons/ParadiseWeaponBase.h"
+#include "Net/UnrealNetwork.h"
 
 AParadiseSurvivalCharacter::AParadiseSurvivalCharacter()
 {
@@ -13,6 +15,14 @@ AParadiseSurvivalCharacter::AParadiseSurvivalCharacter()
 	{
 		MoveComp->MaxWalkSpeed = 230.f;
 	}
+}
+
+void AParadiseSurvivalCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AParadiseSurvivalCharacter, CurrentWeaponSlotIndex);
+	DOREPLIFETIME(AParadiseSurvivalCharacter, CurrentWeapon);
 }
 
 void AParadiseSurvivalCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -50,6 +60,16 @@ void AParadiseSurvivalCharacter::SetupPlayerInputComponent(UInputComponent* Play
 			// 누르고 있는 동안만 Run (500), 떼면 Walk (230)
 			EnhancedInput->BindAction(IA_Run, ETriggerEvent::Started, this, &AParadiseSurvivalCharacter::Input_RunPressed);
 			EnhancedInput->BindAction(IA_Run, ETriggerEvent::Completed, this, &AParadiseSurvivalCharacter::Input_RunReleased);
+		}
+
+		if (IA_EquipSlot1)
+		{
+			EnhancedInput->BindAction(IA_EquipSlot1, ETriggerEvent::Started, this, &AParadiseSurvivalCharacter::Input_EquipSlot1);
+		}
+
+		if (IA_EquipSlot2)
+		{
+			EnhancedInput->BindAction(IA_EquipSlot2, ETriggerEvent::Started, this, &AParadiseSurvivalCharacter::Input_EquipSlot2);
 		}
 
 		if (IA_Block)
@@ -112,6 +132,90 @@ void AParadiseSurvivalCharacter::Input_RunReleased(const FInputActionValue& Valu
 	{
 		MoveComp->MaxWalkSpeed = 230.f;
 	}
+}
+
+void AParadiseSurvivalCharacter::Input_EquipSlot1(const FInputActionValue& Value)
+{
+	ServerEquipWeaponSlot(0);
+}
+
+void AParadiseSurvivalCharacter::Input_EquipSlot2(const FInputActionValue& Value)
+{
+	ServerEquipWeaponSlot(1);
+}
+
+void AParadiseSurvivalCharacter::ServerEquipWeaponSlot_Implementation(int32 SlotIndex)
+{
+	EquipWeaponSlotInternal(SlotIndex);
+}
+
+void AParadiseSurvivalCharacter::EquipWeaponSlotInternal(int32 SlotIndex)
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	if (!WeaponSlots.IsValidIndex(SlotIndex))
+	{
+		return;
+	}
+
+	TSubclassOf<AParadiseWeaponBase> WeaponClass = WeaponSlots[SlotIndex];
+	if (!*WeaponClass)
+	{
+		return;
+	}
+
+	// 같은 슬롯 다시 누른 경우: 나중에 토글(집어넣기) 로직을 넣을 수 있음
+	if (CurrentWeaponSlotIndex == SlotIndex && CurrentWeapon)
+	{
+		return;
+	}
+
+	// 기존 무기 언장착
+	UnequipCurrentWeaponInternal();
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner = this;
+	SpawnParams.Instigator = this;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	AParadiseWeaponBase* NewWeapon = World->SpawnActor<AParadiseWeaponBase>(WeaponClass, SpawnParams);
+	if (!NewWeapon)
+	{
+		return;
+	}
+
+	NewWeapon->OnEquipped(this);
+
+	CurrentWeapon = NewWeapon;
+	CurrentWeaponSlotIndex = SlotIndex;
+
+	// TODO: 여기서 장착 몽타주(무기 꺼내기)를 재생하고 싶으면 AnimInstance에 Notify를 추가
+}
+
+void AParadiseSurvivalCharacter::UnequipCurrentWeaponInternal()
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	if (CurrentWeapon)
+	{
+		CurrentWeapon->OnUnequipped();
+		CurrentWeapon->Destroy();
+		CurrentWeapon = nullptr;
+	}
+
+	CurrentWeaponSlotIndex = -1;
 }
 
 void AParadiseSurvivalCharacter::Input_Block_Pressed(const FInputActionValue& Value)

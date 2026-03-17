@@ -4,6 +4,8 @@
 #include "Characters/ParadiseCharacterBase.h"
 #include "ParadiseSurvivalCharacter.generated.h"
 
+class AParadiseWeaponBase;
+
 class UInputMappingContext;
 class UInputAction;
 struct FInputActionValue;
@@ -21,6 +23,9 @@ public:
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	// 복제 설정 (현재 장착 무기/슬롯)
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
 protected:
 	// Enhanced Input: Mapping Context & Actions (BP에서 세팅)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
@@ -36,6 +41,12 @@ protected:
 	UInputAction* IA_Run;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	UInputAction* IA_EquipSlot1;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	UInputAction* IA_EquipSlot2;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	UInputAction* IA_Block;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
@@ -44,11 +55,34 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	UInputAction* IA_Jump;
 
+	// 간단한 무기 슬롯 인벤토리 (슬롯 인덱스로 접근)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Weapon")
+	TArray<TSubclassOf<AParadiseWeaponBase>> WeaponSlots;
+
+	// 현재 장착 중인 무기
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Inventory|Weapon", Replicated)
+	int32 CurrentWeaponSlotIndex = -1;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Inventory|Weapon", Replicated)
+	AParadiseWeaponBase* CurrentWeapon = nullptr;
+
+public:
+	// 슬롯 장착 요청 (클라이언트 → 서버)
+	UFUNCTION(Server, Reliable)
+	void ServerEquipWeaponSlot(int32 SlotIndex);
+
+protected:
+	// 서버 내부에서만 사용하는 실제 장착/언장착 로직
+	void EquipWeaponSlotInternal(int32 SlotIndex);
+	void UnequipCurrentWeaponInternal();
+
 protected:
 	void Input_Look(const FInputActionValue& Value);
 	void Input_Move(const FInputActionValue& Value);
 	void Input_RunPressed(const FInputActionValue& Value);
 	void Input_RunReleased(const FInputActionValue& Value);
+	void Input_EquipSlot1(const FInputActionValue& Value);
+	void Input_EquipSlot2(const FInputActionValue& Value);
 	void Input_Block_Pressed(const FInputActionValue& Value);
 	void Input_Block_Released(const FInputActionValue& Value);
 	void Input_Roll(const FInputActionValue& Value);
