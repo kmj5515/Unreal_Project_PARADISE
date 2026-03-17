@@ -12,7 +12,7 @@
 - [x] Enhanced Input 적용 (Input Mapping Context, Input Action)
 - [x] 기본 이동(WSAD), 마우스 Look, 점프 구현
 - [ ] 웅크리기(Crouch) 상태 구현 (속도 감소, 캡슐 높이 변경)
-- [ ] 스프린트(Shift) 등 간단한 이동 상태 추가
+- [x] 스프린트(Shift) 등 간단한 이동 상태 추가
 - [x] 캐릭터 이동/상태 복제(Replication) 적용 및 멀티 환경에서 검증
 
 ## Phase 3 – 기본 애니메이션 (이동/점프) (2–3주차)
@@ -48,7 +48,7 @@
 - [ ] 멀티플레이 환경에서 무기 장착/발사/공격 애니메이션 복제 확인
 
 ## Phase 7 – Gameplay Ability System Core & 데미지/체력 (6–7주차)
-- [ ] GAS 모듈 프로젝트에 추가 및 빌드 설정
+- [x] GAS 모듈 프로젝트에 추가 및 빌드 설정
 - [ ] 플레이어용 `AbilitySystemComponent` / `AttributeSet` 구현
 - [ ] 핵심 어트리뷰트 정의 (Health, Stamina, Damage, Armor 등)
 - [ ] 데미지/힐/스태미나용 `GameplayEffect` 구현
