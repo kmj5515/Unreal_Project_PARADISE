@@ -72,6 +72,11 @@ void AParadiseSurvivalCharacter::SetupPlayerInputComponent(UInputComponent* Play
 			EnhancedInput->BindAction(IA_EquipSlot2, ETriggerEvent::Started, this, &AParadiseSurvivalCharacter::Input_EquipSlot2);
 		}
 
+		if (IA_Attack)
+		{
+			EnhancedInput->BindAction(IA_Attack, ETriggerEvent::Started, this, &AParadiseSurvivalCharacter::Input_Attack);
+		}
+
 		if (IA_Block)
 		{
 			EnhancedInput->BindAction(IA_Block, ETriggerEvent::Started, this, &AParadiseSurvivalCharacter::Input_Block_Pressed);
@@ -216,6 +221,40 @@ void AParadiseSurvivalCharacter::UnequipCurrentWeaponInternal()
 	}
 
 	CurrentWeaponSlotIndex = -1;
+}
+
+void AParadiseSurvivalCharacter::Input_Attack(const FInputActionValue& Value)
+{
+	ServerTryAttack();
+}
+
+void AParadiseSurvivalCharacter::ServerTryAttack_Implementation()
+{
+	// TODO: 상태 체크(죽음, 스턴, 쿨타임 등) 필요하면 여기서
+
+	if (CurrentWeapon)
+	{
+		CurrentWeapon->PerformAttack(this);
+	}
+	else
+	{
+		PerformFistAttack();
+	}
+}
+
+void AParadiseSurvivalCharacter::PerformFistAttack()
+{
+	if (!FistAttackMontage)
+	{
+		return;
+	}
+
+	if (UAnimInstance* Anim = GetMesh()->GetAnimInstance())
+	{
+		Anim->Montage_Play(FistAttackMontage);
+	}
+
+	// TODO: AnimNotify로 주먹 히트 트레이스/데미지 처리
 }
 
 void AParadiseSurvivalCharacter::Input_Block_Pressed(const FInputActionValue& Value)

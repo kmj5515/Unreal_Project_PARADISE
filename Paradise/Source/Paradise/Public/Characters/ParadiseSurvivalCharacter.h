@@ -55,6 +55,13 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	UInputAction* IA_Jump;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	UInputAction* IA_Attack;
+
+	// 무기 없을 때 사용할 주먹 공격 몽타주
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
+	UAnimMontage* FistAttackMontage;
+
 	// 간단한 무기 슬롯 인벤토리 (슬롯 인덱스로 접근)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Weapon")
 	TArray<TSubclassOf<AParadiseWeaponBase>> WeaponSlots;
@@ -71,6 +78,10 @@ public:
 	UFUNCTION(Server, Reliable)
 	void ServerEquipWeaponSlot(int32 SlotIndex);
 
+	// 공격 요청 (클라이언트 → 서버)
+	UFUNCTION(Server, Reliable)
+	void ServerTryAttack();
+
 protected:
 	// 서버 내부에서만 사용하는 실제 장착/언장착 로직
 	void EquipWeaponSlotInternal(int32 SlotIndex);
@@ -83,9 +94,13 @@ protected:
 	void Input_RunReleased(const FInputActionValue& Value);
 	void Input_EquipSlot1(const FInputActionValue& Value);
 	void Input_EquipSlot2(const FInputActionValue& Value);
+	void Input_Attack(const FInputActionValue& Value);
 	void Input_Block_Pressed(const FInputActionValue& Value);
 	void Input_Block_Released(const FInputActionValue& Value);
 	void Input_Roll(const FInputActionValue& Value);
 	void Input_Jump_Pressed(const FInputActionValue& Value);
 	void Input_Jump_Released(const FInputActionValue& Value);
+
+	// 무기 없을 때 주먹 공격
+	void PerformFistAttack();
 };

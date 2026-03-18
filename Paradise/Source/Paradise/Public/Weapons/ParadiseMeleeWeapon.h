@@ -12,7 +12,6 @@ class PARADISE_API AParadiseMeleeWeapon : public AParadiseWeaponBase
 	GENERATED_BODY()
 
 public:
-	UFUNCTION(BlueprintCallable, Category = "Weapon|Melee")
-	virtual void PerformAttack();
+	virtual void PerformAttack(class AParadiseSurvivalCharacter* OwnerChar) override;
 };
 

@@ -12,7 +12,9 @@ class PARADISE_API AParadiseRangedWeapon : public AParadiseWeaponBase
 	GENERATED_BODY()
 
 public:
+	virtual void PerformAttack(class AParadiseSurvivalCharacter* OwnerChar) override;
+
 	UFUNCTION(BlueprintCallable, Category = "Weapon|Ranged")
-	virtual void Fire();
+	void Fire();
 };
 

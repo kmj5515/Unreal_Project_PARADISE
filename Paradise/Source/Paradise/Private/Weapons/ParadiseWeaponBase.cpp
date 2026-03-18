@@ -2,6 +2,8 @@
 
 #include "Weapons/ParadiseWeaponBase.h"
 #include "Characters/ParadiseCharacterBase.h"
+#include "Characters/ParadiseSurvivalCharacter.h"
+#include "Animation/AnimInstance.h"
 
 AParadiseWeaponBase::AParadiseWeaponBase()
 {
@@ -35,5 +37,18 @@ void AParadiseWeaponBase::OnUnequipped()
 	}
 
 	OwningCharacter = nullptr;
+}
+
+void AParadiseWeaponBase::PerformAttack(AParadiseSurvivalCharacter* OwnerChar)
+{
+	if (!OwnerChar || !AttackMontage)
+	{
+		return;
+	}
+
+	if (UAnimInstance* Anim = OwnerChar->GetMesh()->GetAnimInstance())
+	{
+		Anim->Montage_Play(AttackMontage);
+	}
 }
 
