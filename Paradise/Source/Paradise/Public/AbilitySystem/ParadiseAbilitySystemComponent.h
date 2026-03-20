@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "AbilitySystemComponent.h"
+#include "Net/UnrealNetwork.h"
 #include "ParadiseAbilitySystemComponent.generated.h"
 
 /**
@@ -15,5 +16,5 @@ class PARADISE_API UParadiseAbilitySystemComponent : public UAbilitySystemCompon
 	GENERATED_BODY()
 
 public:
-
+	UParadiseAbilitySystemComponent();
 };

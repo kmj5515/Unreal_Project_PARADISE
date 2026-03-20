@@ -6,6 +6,8 @@
 #include "Weapons/ParadiseWeaponBase.h"
 #include "ParadiseRangedWeapon.generated.h"
 
+class UGameplayEffect;
+
 UCLASS()
 class PARADISE_API AParadiseRangedWeapon : public AParadiseWeaponBase
 {
@@ -16,5 +18,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Weapon|Ranged")
 	void Fire();
+
+	// 히트된 대상의 ASC에 적용할 데미지 GameplayEffect 클래스
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Damage")
+	TSubclassOf<UGameplayEffect> DamageEffectClass;
 };
 
