@@ -4,6 +4,16 @@
 #include "Characters/ParadiseSurvivalCharacter.h"
 #include "Animation/AnimInstance.h"
 
+bool AParadiseMeleeWeapon::ShouldThrottleNewAttackInput(const UAnimInstance* AnimInst) const
+{
+	if (bSupportsCombo && MaxComboCount > 1 && ComboSections.Num() > 0)
+	{
+		return false;
+	}
+
+	return Super::ShouldThrottleNewAttackInput(AnimInst);
+}
+
 void AParadiseMeleeWeapon::PerformAttack(AParadiseSurvivalCharacter* OwnerChar)
 {
 	if (!OwnerChar || !AttackMontage)
@@ -14,10 +24,7 @@ void AParadiseMeleeWeapon::PerformAttack(AParadiseSurvivalCharacter* OwnerChar)
 	// 콤보 미지원이면 1타만
 	if (!bSupportsCombo || MaxComboCount <= 1 || ComboSections.Num() == 0)
 	{
-		if (UAnimInstance* Anim = OwnerChar->GetMesh()->GetAnimInstance())
-		{
-			Anim->Montage_Play(AttackMontage);
-		}
+		OwnerChar->PlayReplicatedAttackMontage(AttackMontage, NAME_None);
 		return;
 	}
 
@@ -27,14 +34,7 @@ void AParadiseMeleeWeapon::PerformAttack(AParadiseSurvivalCharacter* OwnerChar)
 		? ComboSections[CurrentComboIndex]
 		: NAME_None;
 
-	if (UAnimInstance* Anim = OwnerChar->GetMesh()->GetAnimInstance())
-	{
-		Anim->Montage_Play(AttackMontage);
-		if (SectionName != NAME_None)
-		{
-			Anim->Montage_JumpToSection(SectionName, AttackMontage);
-		}
-	}
+	OwnerChar->PlayReplicatedAttackMontage(AttackMontage, SectionName);
 
 	// TODO: AnimNotify에서 트레이스/데미지 호출
 }

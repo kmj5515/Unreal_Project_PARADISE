@@ -13,5 +13,6 @@ class PARADISE_API AParadiseMeleeWeapon : public AParadiseWeaponBase
 
 public:
 	virtual void PerformAttack(class AParadiseSurvivalCharacter* OwnerChar) override;
+	virtual bool ShouldThrottleNewAttackInput(const UAnimInstance* AnimInst) const override;
 };
 

@@ -2,7 +2,6 @@
 
 #include "Weapons/ParadiseRangedWeapon.h"
 #include "Characters/ParadiseSurvivalCharacter.h"
-#include "Animation/AnimInstance.h"
 #include "AbilitySystemInterface.h"
 #include "AbilitySystemComponent.h"
 #include "GameplayEffect.h"
@@ -16,13 +15,10 @@ void AParadiseRangedWeapon::PerformAttack(AParadiseSurvivalCharacter* OwnerChar)
 		return;
 	}
 
-	// 사격용 몽타주가 있으면 재생
+	// 사격용 몽타주가 있으면 모든 클라이언트에서 재생
 	if (AttackMontage)
 	{
-		if (UAnimInstance* Anim = OwnerChar->GetMesh()->GetAnimInstance())
-		{
-			Anim->Montage_Play(AttackMontage);
-		}
+		OwnerChar->PlayReplicatedAttackMontage(AttackMontage, NAME_None);
 	}
 
 	Fire();

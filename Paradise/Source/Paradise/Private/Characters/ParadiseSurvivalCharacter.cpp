@@ -7,6 +7,7 @@
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Weapons/ParadiseWeaponBase.h"
+#include "Animation/AnimInstance.h"
 #include "Net/UnrealNetwork.h"
 
 AParadiseSurvivalCharacter::AParadiseSurvivalCharacter()
@@ -228,9 +229,74 @@ void AParadiseSurvivalCharacter::Input_Attack(const FInputActionValue& Value)
 	ServerTryAttack();
 }
 
+bool AParadiseSurvivalCharacter::ShouldThrottleAttackInput() const
+{
+	USkeletalMeshComponent* MeshComp = GetMesh();
+	if (!MeshComp)
+	{
+		return false;
+	}
+
+	const UAnimInstance* Anim = MeshComp->GetAnimInstance();
+	if (!Anim)
+	{
+		return false;
+	}
+
+	if (CurrentWeapon)
+	{
+		return CurrentWeapon->ShouldThrottleNewAttackInput(Anim);
+	}
+
+	if (FistAttackMontage)
+	{
+		return Anim->Montage_IsPlaying(FistAttackMontage);
+	}
+
+	return false;
+}
+
+void AParadiseSurvivalCharacter::PlayReplicatedAttackMontage(UAnimMontage* Montage, FName SectionName)
+{
+	if (!Montage || !HasAuthority())
+	{
+		return;
+	}
+
+	MulticastPlayAttackMontage(Montage, SectionName);
+}
+
+void AParadiseSurvivalCharacter::MulticastPlayAttackMontage_Implementation(UAnimMontage* Montage, FName SectionName)
+{
+	if (!Montage)
+	{
+		return;
+	}
+
+	USkeletalMeshComponent* MeshComp = GetMesh();
+	if (!MeshComp)
+	{
+		return;
+	}
+
+	if (UAnimInstance* Anim = MeshComp->GetAnimInstance())
+	{
+		Anim->Montage_Play(Montage);
+		if (SectionName != NAME_None)
+		{
+			Anim->Montage_JumpToSection(SectionName, Montage);
+		}
+	}
+}
+
 void AParadiseSurvivalCharacter::ServerTryAttack_Implementation()
 {
 	// TODO: 상태 체크(죽음, 스턴, 쿨타임 등) 필요하면 여기서
+
+	if (ShouldThrottleAttackInput())
+	{
+		return;
+	}
 
 	if (CurrentWeapon)
 	{
@@ -249,10 +315,7 @@ void AParadiseSurvivalCharacter::PerformFistAttack()
 		return;
 	}
 
-	if (UAnimInstance* Anim = GetMesh()->GetAnimInstance())
-	{
-		Anim->Montage_Play(FistAttackMontage);
-	}
+	PlayReplicatedAttackMontage(FistAttackMontage, NAME_None);
 
 	// TODO: AnimNotify로 주먹 히트 트레이스/데미지 처리
 }

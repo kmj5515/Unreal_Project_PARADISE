@@ -39,6 +39,16 @@ void AParadiseWeaponBase::OnUnequipped()
 	OwningCharacter = nullptr;
 }
 
+bool AParadiseWeaponBase::ShouldThrottleNewAttackInput(const UAnimInstance* AnimInst) const
+{
+	if (!AnimInst || !AttackMontage)
+	{
+		return false;
+	}
+
+	return AnimInst->Montage_IsPlaying(AttackMontage);
+}
+
 void AParadiseWeaponBase::PerformAttack(AParadiseSurvivalCharacter* OwnerChar)
 {
 	if (!OwnerChar || !AttackMontage)
@@ -46,9 +56,6 @@ void AParadiseWeaponBase::PerformAttack(AParadiseSurvivalCharacter* OwnerChar)
 		return;
 	}
 
-	if (UAnimInstance* Anim = OwnerChar->GetMesh()->GetAnimInstance())
-	{
-		Anim->Montage_Play(AttackMontage);
-	}
+	OwnerChar->PlayReplicatedAttackMontage(AttackMontage, NAME_None);
 }
 

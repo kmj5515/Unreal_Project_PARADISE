@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Characters/ParadiseCharacterBase.h"
+#include "Animation/AnimMontage.h"
 #include "ParadiseSurvivalCharacter.generated.h"
 
 class AParadiseWeaponBase;
@@ -81,6 +82,16 @@ public:
 	// 공격 요청 (클라이언트 → 서버)
 	UFUNCTION(Server, Reliable)
 	void ServerTryAttack();
+
+	/** 서버에서만 호출: 공격 몽타주를 모든 클라이언트(및 리슨 서버 본인)에서 재생 */
+	void PlayReplicatedAttackMontage(UAnimMontage* Montage, FName SectionName = NAME_None);
+
+protected:
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastPlayAttackMontage(UAnimMontage* Montage, FName SectionName);
+
+	/** 공격 몽타주가 끝나기 전 연타 방지 (무기는 ShouldThrottleNewAttackInput 참고) */
+	bool ShouldThrottleAttackInput() const;
 
 protected:
 	// 서버 내부에서만 사용하는 실제 장착/언장착 로직

@@ -8,6 +8,7 @@
 
 class USkeletalMeshComponent;
 class AParadiseCharacterBase;
+class UAnimInstance;
 
 UCLASS()
 class PARADISE_API AParadiseWeaponBase : public AActor
@@ -55,5 +56,8 @@ public:
 	// 공통 공격 진입점
 	UFUNCTION(BlueprintCallable, Category = "Weapon|Attack")
 	virtual void PerformAttack(class AParadiseSurvivalCharacter* OwnerChar);
+
+	/** true면 같은 공격 몽타주가 끝나기 전 새 공격 입력 무시 (콤보 무기는 오버라이드로 예외 처리 가능) */
+	virtual bool ShouldThrottleNewAttackInput(const UAnimInstance* AnimInst) const;
 };
 
