@@ -7,6 +7,12 @@
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Weapons/ParadiseWeaponBase.h"
+#include "Weapons/ParadiseMeleeWeapon.h"
+#include "AbilitySystemInterface.h"
+#include "AbilitySystemComponent.h"
+#include "GameplayEffect.h"
+#include "GameplayEffectTypes.h"
+#include "DrawDebugHelpers.h"
 #include "Animation/AnimInstance.h"
 #include "Net/UnrealNetwork.h"
 
@@ -308,6 +314,27 @@ void AParadiseSurvivalCharacter::ServerTryAttack_Implementation()
 	}
 }
 
+void AParadiseSurvivalCharacter::ServerMeleeTraceAndApplyDamage_Implementation()
+{
+	if (!CurrentWeapon)
+	{
+		return;
+	}
+
+	AParadiseMeleeWeapon* MeleeWeapon = Cast<AParadiseMeleeWeapon>(CurrentWeapon);
+	if (!MeleeWeapon)
+	{
+		return;
+	}
+
+	MeleeWeapon->MeleeTraceAndApplyDamage();
+}
+
+void AParadiseSurvivalCharacter::ServerFistTraceAndApplyDamage_Implementation()
+{
+	PerformFistTraceAndApplyDamage();
+}
+
 void AParadiseSurvivalCharacter::PerformFistAttack()
 {
 	if (!FistAttackMontage)
@@ -318,6 +345,108 @@ void AParadiseSurvivalCharacter::PerformFistAttack()
 	PlayReplicatedAttackMontage(FistAttackMontage, NAME_None);
 
 	// TODO: AnimNotify로 주먹 히트 트레이스/데미지 처리
+}
+
+void AParadiseSurvivalCharacter::PerformFistTraceAndApplyDamage()
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	if (!FistDamageEffectClass)
+	{
+		return;
+	}
+
+	UAbilitySystemComponent* SourceASC = GetAbilitySystemComponent();
+	if (!SourceASC)
+	{
+		return;
+	}
+
+	FVector EyeLocation;
+	FRotator EyeRotation;
+	GetActorEyesViewPoint(EyeLocation, EyeRotation);
+
+	const FVector Start = EyeLocation;
+	const FVector End = Start + EyeRotation.Vector() * FistTraceDistance;
+
+	TArray<FHitResult> Hits;
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(FistTrace), true);
+	QueryParams.AddIgnoredActor(this);
+
+	const bool bHit = GetWorld() && GetWorld()->SweepMultiByChannel(
+		Hits,
+		Start,
+		End,
+		FQuat::Identity,
+		ECC_Visibility,
+		FCollisionShape::MakeSphere(FistTraceRadius),
+		QueryParams);
+
+	if (bDebugFistTrace && GetWorld())
+	{
+		const FColor TraceColor = bHit ? FColor::Green : FColor::Red;
+		DrawDebugLine(GetWorld(), Start, End, TraceColor, false, FistDebugDrawTime, 0, 1.5f);
+		DrawDebugSphere(GetWorld(), Start, FistTraceRadius, 12, FColor::Cyan, false, FistDebugDrawTime);
+		DrawDebugSphere(GetWorld(), End, FistTraceRadius, 12, FColor::Cyan, false, FistDebugDrawTime);
+
+		UE_LOG(LogTemp, Log, TEXT("[FistTrace] Hit=%s, HitsCount=%d, Start=%s, End=%s"),
+			bHit ? TEXT("true") : TEXT("false"),
+			Hits.Num(),
+			*Start.ToCompactString(),
+			*End.ToCompactString());
+	}
+
+	if (!bHit)
+	{
+		return;
+	}
+
+	TSet<TWeakObjectPtr<AActor>> HitActorsThisPunch;
+	for (const FHitResult& Hit : Hits)
+	{
+		AActor* HitActor = Hit.GetActor();
+		if (!HitActor || HitActor == this || HitActorsThisPunch.Contains(HitActor))
+		{
+			continue;
+		}
+		HitActorsThisPunch.Add(HitActor);
+
+		IAbilitySystemInterface* TargetASCInterface = Cast<IAbilitySystemInterface>(HitActor);
+		if (!TargetASCInterface)
+		{
+			continue;
+		}
+
+		UAbilitySystemComponent* TargetASC = TargetASCInterface->GetAbilitySystemComponent();
+		if (!TargetASC)
+		{
+			continue;
+		}
+
+		if (bDebugFistTrace)
+		{
+			UE_LOG(LogTemp, Log, TEXT("[FistTrace] Apply damage to %s"), *HitActor->GetName());
+			if (GetWorld())
+			{
+				DrawDebugSphere(GetWorld(), Hit.ImpactPoint, 10.f, 8, FColor::Yellow, false, FistDebugDrawTime);
+			}
+		}
+
+		FGameplayEffectContextHandle EffectContext = SourceASC->MakeEffectContext();
+		EffectContext.AddSourceObject(this);
+		EffectContext.AddHitResult(Hit);
+
+		FGameplayEffectSpecHandle SpecHandle = SourceASC->MakeOutgoingSpec(FistDamageEffectClass, 1.f, EffectContext);
+		if (!SpecHandle.IsValid() || !SpecHandle.Data.IsValid())
+		{
+			continue;
+		}
+
+		TargetASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+	}
 }
 
 void AParadiseSurvivalCharacter::Input_Block_Pressed(const FInputActionValue& Value)

@@ -6,6 +6,7 @@
 #include "ParadiseSurvivalCharacter.generated.h"
 
 class AParadiseWeaponBase;
+class UGameplayEffect;
 
 class UInputMappingContext;
 class UInputAction;
@@ -63,6 +64,22 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
 	UAnimMontage* FistAttackMontage;
 
+	// 맨손 데미지 이펙트
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Fist")
+	TSubclassOf<UGameplayEffect> FistDamageEffectClass;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Fist")
+	float FistTraceDistance = 120.f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Fist")
+	float FistTraceRadius = 16.f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Fist|Debug")
+	bool bDebugFistTrace = false;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Fist|Debug", meta = (EditCondition = "bDebugFistTrace", ClampMin = "0.01"))
+	float FistDebugDrawTime = 1.0f;
+
 	// 간단한 무기 슬롯 인벤토리 (슬롯 인덱스로 접근)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Weapon")
 	TArray<TSubclassOf<AParadiseWeaponBase>> WeaponSlots;
@@ -82,6 +99,14 @@ public:
 	// 공격 요청 (클라이언트 → 서버)
 	UFUNCTION(Server, Reliable)
 	void ServerTryAttack();
+
+	// AnimNotify에서 호출: 서버가 현재 근접 무기로 데미지 처리
+	UFUNCTION(Server, Reliable)
+	void ServerMeleeTraceAndApplyDamage();
+
+	// AnimNotify에서 호출: 서버가 맨손 데미지 처리
+	UFUNCTION(Server, Reliable)
+	void ServerFistTraceAndApplyDamage();
 
 	/** 서버에서만 호출: 공격 몽타주를 모든 클라이언트(및 리슨 서버 본인)에서 재생 */
 	void PlayReplicatedAttackMontage(UAnimMontage* Montage, FName SectionName = NAME_None);
@@ -114,4 +139,5 @@ protected:
 
 	// 무기 없을 때 주먹 공격
 	void PerformFistAttack();
+	void PerformFistTraceAndApplyDamage();
 };
