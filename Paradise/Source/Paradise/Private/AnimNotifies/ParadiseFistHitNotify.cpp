@@ -16,6 +16,11 @@ void UParadiseFistHitNotify::Notify(USkeletalMeshComponent* MeshComp, UAnimSeque
 		return;
 	}
 
+	if (!Character->HasAuthority() && !Character->IsLocallyControlled())
+	{
+		return;
+	}
+
 	Character->ServerFistTraceAndApplyDamage();
 }
 

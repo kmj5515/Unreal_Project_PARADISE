@@ -77,7 +77,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Fist|Debug")
 	bool bDebugFistTrace = false;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Fist|Debug", meta = (EditCondition = "bDebugFistTrace", ClampMin = "0.01"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Fist|Debug")
+	bool bDebugFistWeaponHitReact = false;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Fist|Debug", meta = (EditCondition = "bDebugFistTrace || bDebugFistWeaponHitReact", ClampMin = "0.01"))
 	float FistDebugDrawTime = 1.0f;
 
 	// 간단한 무기 슬롯 인벤토리 (슬롯 인덱스로 접근)

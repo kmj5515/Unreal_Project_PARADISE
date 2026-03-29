@@ -15,6 +15,7 @@
 #include "DrawDebugHelpers.h"
 #include "Animation/AnimInstance.h"
 #include "Net/UnrealNetwork.h"
+#include "Interfaces/ParadiseWeaponHitReactable.h"
 
 AParadiseSurvivalCharacter::AParadiseSurvivalCharacter()
 {
@@ -354,16 +355,7 @@ void AParadiseSurvivalCharacter::PerformFistTraceAndApplyDamage()
 		return;
 	}
 
-	if (!FistDamageEffectClass)
-	{
-		return;
-	}
-
 	UAbilitySystemComponent* SourceASC = GetAbilitySystemComponent();
-	if (!SourceASC)
-	{
-		return;
-	}
 
 	FVector EyeLocation;
 	FRotator EyeRotation;
@@ -413,6 +405,18 @@ void AParadiseSurvivalCharacter::PerformFistTraceAndApplyDamage()
 			continue;
 		}
 		HitActorsThisPunch.Add(HitActor);
+
+		if (HitActor->GetClass()->ImplementsInterface(UParadiseWeaponHitReactable::StaticClass()))
+		{
+			constexpr float HitStrength = 1.f;
+			ParadiseLogWeaponHitReactDebug(GetWorld(), bDebugFistWeaponHitReact, FistDebugDrawTime, HitActor, Hit, this, HitStrength, TEXT("Fist"));
+			IParadiseWeaponHitReactable::Execute_ReactToWeaponHit(HitActor, this, Hit, HitStrength);
+		}
+
+		if (!FistDamageEffectClass || !SourceASC)
+		{
+			continue;
+		}
 
 		IAbilitySystemInterface* TargetASCInterface = Cast<IAbilitySystemInterface>(HitActor);
 		if (!TargetASCInterface)

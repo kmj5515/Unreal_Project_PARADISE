@@ -34,7 +34,10 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Melee|Debug")
 	bool bDebugMeleeTrace = false;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Melee|Debug", meta = (EditCondition = "bDebugMeleeTrace", ClampMin = "0.01"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Melee|Debug")
+	bool bDebugWeaponHitReact = false;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Melee|Debug", meta = (EditCondition = "bDebugMeleeTrace || bDebugWeaponHitReact", ClampMin = "0.01"))
 	float DebugDrawTime = 1.0f;
 };
 

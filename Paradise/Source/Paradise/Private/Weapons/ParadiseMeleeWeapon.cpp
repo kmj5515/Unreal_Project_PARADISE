@@ -9,6 +9,7 @@
 #include "GameplayEffectTypes.h"
 #include "Engine/World.h"
 #include "DrawDebugHelpers.h"
+#include "Interfaces/ParadiseWeaponHitReactable.h"
 
 bool AParadiseMeleeWeapon::ShouldThrottleNewAttackInput(const UAnimInstance* AnimInst) const
 {
@@ -47,21 +48,12 @@ void AParadiseMeleeWeapon::PerformAttack(AParadiseSurvivalCharacter* OwnerChar)
 
 void AParadiseMeleeWeapon::MeleeTraceAndApplyDamage()
 {
-	if (!HasAuthority())
-	{
-		return;
-	}
-
-	if (!DamageEffectClass || !OwningCharacter)
+	if (!HasAuthority() || !OwningCharacter)
 	{
 		return;
 	}
 
 	UAbilitySystemComponent* SourceASC = OwningCharacter->GetAbilitySystemComponent();
-	if (!SourceASC)
-	{
-		return;
-	}
 
 	const FVector Start = WeaponMesh ? WeaponMesh->GetComponentLocation() : OwningCharacter->GetActorLocation();
 	const FVector End = Start + OwningCharacter->GetActorForwardVector() * TraceDistance;
@@ -108,6 +100,18 @@ void AParadiseMeleeWeapon::MeleeTraceAndApplyDamage()
 			continue;
 		}
 		HitActorsThisSwing.Add(HitActor);
+
+		if (HitActor->GetClass()->ImplementsInterface(UParadiseWeaponHitReactable::StaticClass()))
+		{
+			constexpr float HitStrength = 1.f;
+			ParadiseLogWeaponHitReactDebug(GetWorld(), bDebugWeaponHitReact, DebugDrawTime, HitActor, Hit, OwningCharacter, HitStrength, TEXT("Melee"));
+			IParadiseWeaponHitReactable::Execute_ReactToWeaponHit(HitActor, OwningCharacter, Hit, HitStrength);
+		}
+
+		if (!DamageEffectClass || !SourceASC)
+		{
+			continue;
+		}
 
 		IAbilitySystemInterface* TargetASCInterface = Cast<IAbilitySystemInterface>(HitActor);
 		if (!TargetASCInterface)

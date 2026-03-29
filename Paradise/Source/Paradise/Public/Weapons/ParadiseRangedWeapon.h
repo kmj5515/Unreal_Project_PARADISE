@@ -22,5 +22,11 @@ public:
 	// 히트된 대상의 ASC에 적용할 데미지 GameplayEffect 클래스
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Damage")
 	TSubclassOf<UGameplayEffect> DamageEffectClass;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Ranged|Debug")
+	bool bDebugWeaponHitReact = false;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Ranged|Debug", meta = (EditCondition = "bDebugWeaponHitReact", ClampMin = "0.01"))
+	float WeaponHitReactDebugDrawTime = 1.0f;
 };
 

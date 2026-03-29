@@ -7,6 +7,7 @@
 #include "GameplayEffect.h"
 #include "GameplayEffectTypes.h"
 #include "Engine/World.h"
+#include "Interfaces/ParadiseWeaponHitReactable.h"
 
 void AParadiseRangedWeapon::PerformAttack(AParadiseSurvivalCharacter* OwnerChar)
 {
@@ -26,21 +27,12 @@ void AParadiseRangedWeapon::PerformAttack(AParadiseSurvivalCharacter* OwnerChar)
 
 void AParadiseRangedWeapon::Fire()
 {
-	if (!DamageEffectClass)
-	{
-		return;
-	}
-
-	if (!OwningCharacter)
+	if (!OwningCharacter || !GetWorld())
 	{
 		return;
 	}
 
 	UAbilitySystemComponent* SourceASC = OwningCharacter->GetAbilitySystemComponent();
-	if (!SourceASC)
-	{
-		return;
-	}
 
 	// 간단 히트스캔 (현재는 시야 기준으로 발사)
 	FVector EyeLocation;
@@ -61,6 +53,18 @@ void AParadiseRangedWeapon::Fire()
 
 	AActor* HitActor = HitResult.GetActor();
 	if (!HitActor)
+	{
+		return;
+	}
+
+	if (HitActor->GetClass()->ImplementsInterface(UParadiseWeaponHitReactable::StaticClass()))
+	{
+		constexpr float HitStrength = 1.f;
+		ParadiseLogWeaponHitReactDebug(GetWorld(), bDebugWeaponHitReact, WeaponHitReactDebugDrawTime, HitActor, HitResult, OwningCharacter, HitStrength, TEXT("Ranged"));
+		IParadiseWeaponHitReactable::Execute_ReactToWeaponHit(HitActor, OwningCharacter, HitResult, HitStrength);
+	}
+
+	if (!DamageEffectClass || !SourceASC)
 	{
 		return;
 	}

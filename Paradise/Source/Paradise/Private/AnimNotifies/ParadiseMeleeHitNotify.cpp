@@ -16,6 +16,12 @@ void UParadiseMeleeHitNotify::Notify(USkeletalMeshComponent* MeshComp, UAnimSequ
 		return;
 	}
 
+	// 멀티캐스트 몽타주로 다른 클라에서도 Notify가 돌면, 비소유자가 Server RPC를 내면 안 됨.
+	if (!Character->HasAuthority() && !Character->IsLocallyControlled())
+	{
+		return;
+	}
+
 	Character->ServerMeleeTraceAndApplyDamage();
 }
 
