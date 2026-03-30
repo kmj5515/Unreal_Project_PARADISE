@@ -3,18 +3,19 @@
 #include "CoreMinimal.h"
 #include "Characters/ParadiseCharacterBase.h"
 #include "Animation/AnimMontage.h"
+#include "Engine/EngineTypes.h"
 #include "ParadiseSurvivalCharacter.generated.h"
 
 class AParadiseWeaponBase;
 class UGameplayEffect;
+class UUserWidget;
 
 class UInputMappingContext;
 class UInputAction;
 struct FInputActionValue;
 
-/**
- * 
- */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnParadiseInteractableFocusChanged, AActor*, FocusedActor);
+
 UCLASS()
 class PARADISE_API AParadiseSurvivalCharacter : public AParadiseCharacterBase
 {
@@ -23,6 +24,9 @@ class PARADISE_API AParadiseSurvivalCharacter : public AParadiseCharacterBase
 public:
 	AParadiseSurvivalCharacter();
 
+	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaSeconds) override;
+	virtual void NotifyControllerChanged() override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	// 복제 설정 (현재 장착 무기/슬롯)
@@ -59,6 +63,27 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	UInputAction* IA_Attack;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	UInputAction* IA_UnequipWeapon;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	UInputAction* IA_Interact;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Interaction|Trace")
+	float InteractionTraceDistance = 350.f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Interaction|Trace")
+	TEnumAsByte<ECollisionChannel> InteractionTraceChannel = ECC_Visibility;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Interaction|Debug")
+	bool bDebugInteractionTrace = false;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Interaction|Debug", meta = (EditCondition = "bDebugInteractionTrace", ClampMin = "0.01"))
+	float InteractionDebugDrawTime = 0.05f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Interaction|UI")
+	TSubclassOf<UUserWidget> InteractionPromptWidgetClass;
 
 	// 무기 없을 때 사용할 주먹 공격 몽타주
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
@@ -99,6 +124,9 @@ public:
 	UFUNCTION(Server, Reliable)
 	void ServerEquipWeaponSlot(int32 SlotIndex);
 
+	UFUNCTION(Server, Reliable)
+	void ServerUnequipWeapon();
+
 	// 공격 요청 (클라이언트 → 서버)
 	UFUNCTION(Server, Reliable)
 	void ServerTryAttack();
@@ -113,6 +141,15 @@ public:
 
 	/** 서버에서만 호출: 공격 몽타주를 모든 클라이언트(및 리슨 서버 본인)에서 재생 */
 	void PlayReplicatedAttackMontage(UAnimMontage* Montage, FName SectionName = NAME_None);
+
+	UFUNCTION(BlueprintPure, Category = "Interaction")
+	AActor* GetFocusedInteractable() const;
+
+	UPROPERTY(BlueprintAssignable, Category = "Interaction")
+	FOnParadiseInteractableFocusChanged OnInteractableFocusChanged;
+
+	UFUNCTION(Server, Reliable)
+	void ServerInteract(AActor* Target);
 
 protected:
 	UFUNCTION(NetMulticast, Reliable)
@@ -133,12 +170,26 @@ protected:
 	void Input_RunReleased(const FInputActionValue& Value);
 	void Input_EquipSlot1(const FInputActionValue& Value);
 	void Input_EquipSlot2(const FInputActionValue& Value);
+	void Input_UnequipWeapon(const FInputActionValue& Value);
 	void Input_Attack(const FInputActionValue& Value);
 	void Input_Block_Pressed(const FInputActionValue& Value);
 	void Input_Block_Released(const FInputActionValue& Value);
 	void Input_Roll(const FInputActionValue& Value);
 	void Input_Jump_Pressed(const FInputActionValue& Value);
 	void Input_Jump_Released(const FInputActionValue& Value);
+	void Input_Interact(const FInputActionValue& Value);
+
+	void UpdateInteractionFocus();
+	void SetInteractableFocus(AActor* NewFocus);
+	void EnsureInteractionPromptWidget();
+	void RefreshInteractionPromptVisibility();
+	bool ValidateInteractTarget(AActor* Target) const;
+
+	UPROPERTY(Transient)
+	TWeakObjectPtr<AActor> FocusedInteractable;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UUserWidget> InteractionPromptWidget;
 
 	// 무기 없을 때 주먹 공격
 	void PerformFistAttack();

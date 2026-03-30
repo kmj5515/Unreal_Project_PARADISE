@@ -4,8 +4,12 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
+#include "Blueprint/UserWidget.h"
+#include "Camera/PlayerCameraManager.h"
+#include "Components/PrimitiveComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Interfaces/ParadiseInteractable.h"
 #include "Weapons/ParadiseWeaponBase.h"
 #include "Weapons/ParadiseMeleeWeapon.h"
 #include "AbilitySystemInterface.h"
@@ -17,12 +21,128 @@
 #include "Net/UnrealNetwork.h"
 #include "Interfaces/ParadiseWeaponHitReactable.h"
 
+namespace ParadiseInteractionTrace
+{
+static TArray<FHitResult> GatherSortedHits(
+	UWorld* World,
+	const FVector& Start,
+	const FVector& End,
+	ECollisionChannel Channel,
+	const FCollisionQueryParams& Params)
+{
+	TArray<FHitResult> Hits;
+	if (!World)
+	{
+		return Hits;
+	}
+	World->LineTraceMultiByChannel(Hits, Start, End, Channel, Params);
+	if (Hits.Num() == 0)
+	{
+		return Hits;
+	}
+	Hits.Sort([](const FHitResult& A, const FHitResult& B) { return A.Distance < B.Distance; });
+	return Hits;
+}
+
+static AActor* ResolveInteractableFromHit(const FHitResult& Hit)
+{
+	if (AActor* A = Hit.GetActor())
+	{
+		if (A->GetClass()->ImplementsInterface(UParadiseInteractable::StaticClass()))
+		{
+			return A;
+		}
+	}
+	if (UPrimitiveComponent* Comp = Hit.GetComponent())
+	{
+		if (AActor* OwnerActor = Comp->GetOwner())
+		{
+			if (OwnerActor->GetClass()->ImplementsInterface(UParadiseInteractable::StaticClass()))
+			{
+				return OwnerActor;
+			}
+		}
+	}
+	return nullptr;
+}
+
+static AActor* FindFirstInteractableAlongRay(
+	UWorld* World,
+	const FVector& Start,
+	const FVector& End,
+	ECollisionChannel Channel,
+	const FCollisionQueryParams& Params)
+{
+	for (const FHitResult& Hit : GatherSortedHits(World, Start, End, Channel, Params))
+	{
+		if (AActor* Found = ResolveInteractableFromHit(Hit))
+		{
+			return Found;
+		}
+	}
+	return nullptr;
+}
+
+static bool IsTargetAlongInteractRay(
+	UWorld* World,
+	const FVector& Start,
+	const FVector& End,
+	ECollisionChannel Channel,
+	const FCollisionQueryParams& Params,
+	AActor* Target)
+{
+	if (!Target)
+	{
+		return false;
+	}
+	for (const FHitResult& Hit : GatherSortedHits(World, Start, End, Channel, Params))
+	{
+		if (Hit.GetActor() == Target)
+		{
+			return true;
+		}
+		if (UPrimitiveComponent* Comp = Hit.GetComponent())
+		{
+			if (Comp->GetOwner() == Target)
+			{
+				return true;
+			}
+		}
+	}
+	return false;
+}
+}
+
 AParadiseSurvivalCharacter::AParadiseSurvivalCharacter()
 {
+	PrimaryActorTick.bCanEverTick = true;
+
 	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
 	{
 		MoveComp->MaxWalkSpeed = 230.f;
 	}
+}
+
+void AParadiseSurvivalCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+	SetActorTickEnabled(IsLocallyControlled());
+}
+
+void AParadiseSurvivalCharacter::NotifyControllerChanged()
+{
+	Super::NotifyControllerChanged();
+	SetActorTickEnabled(IsLocallyControlled());
+}
+
+void AParadiseSurvivalCharacter::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+	if (!IsLocallyControlled())
+	{
+		return;
+	}
+	UpdateInteractionFocus();
 }
 
 void AParadiseSurvivalCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -80,6 +200,11 @@ void AParadiseSurvivalCharacter::SetupPlayerInputComponent(UInputComponent* Play
 			EnhancedInput->BindAction(IA_EquipSlot2, ETriggerEvent::Started, this, &AParadiseSurvivalCharacter::Input_EquipSlot2);
 		}
 
+		if (IA_UnequipWeapon)
+		{
+			EnhancedInput->BindAction(IA_UnequipWeapon, ETriggerEvent::Started, this, &AParadiseSurvivalCharacter::Input_UnequipWeapon);
+		}
+
 		if (IA_Attack)
 		{
 			EnhancedInput->BindAction(IA_Attack, ETriggerEvent::Started, this, &AParadiseSurvivalCharacter::Input_Attack);
@@ -100,6 +225,11 @@ void AParadiseSurvivalCharacter::SetupPlayerInputComponent(UInputComponent* Play
 		{
 			EnhancedInput->BindAction(IA_Jump, ETriggerEvent::Started, this, &AParadiseSurvivalCharacter::Input_Jump_Pressed);
 			EnhancedInput->BindAction(IA_Jump, ETriggerEvent::Completed, this, &AParadiseSurvivalCharacter::Input_Jump_Released);
+		}
+
+		if (IA_Interact)
+		{
+			EnhancedInput->BindAction(IA_Interact, ETriggerEvent::Started, this, &AParadiseSurvivalCharacter::Input_Interact);
 		}
 	}
 }
@@ -155,6 +285,20 @@ void AParadiseSurvivalCharacter::Input_EquipSlot1(const FInputActionValue& Value
 void AParadiseSurvivalCharacter::Input_EquipSlot2(const FInputActionValue& Value)
 {
 	ServerEquipWeaponSlot(1);
+}
+
+void AParadiseSurvivalCharacter::Input_UnequipWeapon(const FInputActionValue& Value)
+{
+	ServerUnequipWeapon();
+}
+
+void AParadiseSurvivalCharacter::ServerUnequipWeapon_Implementation()
+{
+	if (!CurrentWeapon)
+	{
+		return;
+	}
+	UnequipCurrentWeaponInternal();
 }
 
 void AParadiseSurvivalCharacter::ServerEquipWeaponSlot_Implementation(int32 SlotIndex)
@@ -476,5 +620,193 @@ void AParadiseSurvivalCharacter::Input_Jump_Pressed(const FInputActionValue& Val
 void AParadiseSurvivalCharacter::Input_Jump_Released(const FInputActionValue& Value)
 {
 	StopJumping();
+}
+
+AActor* AParadiseSurvivalCharacter::GetFocusedInteractable() const
+{
+	return FocusedInteractable.Get();
+}
+
+void AParadiseSurvivalCharacter::Input_Interact(const FInputActionValue& Value)
+{
+	AActor* Target = FocusedInteractable.Get();
+	if (!Target)
+	{
+		return;
+	}
+	ServerInteract(Target);
+}
+
+void AParadiseSurvivalCharacter::ServerInteract_Implementation(AActor* Target)
+{
+	if (!HasAuthority() || !IsValid(Target))
+	{
+		return;
+	}
+	if (!Target->GetClass()->ImplementsInterface(UParadiseInteractable::StaticClass()))
+	{
+		return;
+	}
+	if (!ValidateInteractTarget(Target))
+	{
+		return;
+	}
+	IParadiseInteractable::Execute_Interact(Target, this);
+}
+
+bool AParadiseSurvivalCharacter::ValidateInteractTarget(AActor* Target) const
+{
+	if (!Target || !GetWorld())
+	{
+		return false;
+	}
+
+	FVector TraceStart;
+	FVector TraceEnd;
+	const APlayerController* PC = Cast<APlayerController>(GetController());
+	if (PC && PC->PlayerCameraManager)
+	{
+		const FVector Dir = PC->PlayerCameraManager->GetCameraRotation().Vector();
+		TraceStart = PC->PlayerCameraManager->GetCameraLocation();
+		TraceEnd = TraceStart + Dir * InteractionTraceDistance;
+	}
+	else
+	{
+		FVector EyeLocation;
+		FRotator EyeRotation;
+		GetActorEyesViewPoint(EyeLocation, EyeRotation);
+		TraceStart = EyeLocation;
+		TraceEnd = EyeLocation + EyeRotation.Vector() * InteractionTraceDistance;
+	}
+
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(InteractionValidate), true);
+	Params.AddIgnoredActor(this);
+
+	if (ParadiseInteractionTrace::IsTargetAlongInteractRay(
+			GetWorld(),
+			TraceStart,
+			TraceEnd,
+			InteractionTraceChannel,
+			Params,
+			Target))
+	{
+		return true;
+	}
+
+	if (!PC || !PC->PlayerCameraManager)
+	{
+		const float MaxDist = InteractionTraceDistance + 150.f;
+		return FVector::DistSquared(GetActorLocation(), Target->GetActorLocation()) <= FMath::Square(MaxDist);
+	}
+	return false;
+}
+
+void AParadiseSurvivalCharacter::UpdateInteractionFocus()
+{
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (!PC || !PC->PlayerCameraManager)
+	{
+		SetInteractableFocus(nullptr);
+		return;
+	}
+
+	const FVector Start = PC->PlayerCameraManager->GetCameraLocation();
+	const FVector End = Start + PC->PlayerCameraManager->GetCameraRotation().Vector() * InteractionTraceDistance;
+
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(InteractionFocus), true);
+	Params.AddIgnoredActor(this);
+
+	AActor* NewFocus = ParadiseInteractionTrace::FindFirstInteractableAlongRay(
+		GetWorld(),
+		Start,
+		End,
+		InteractionTraceChannel,
+		Params);
+
+	if (bDebugInteractionTrace && GetWorld())
+	{
+		TArray<FHitResult> DebugHits;
+		GetWorld()->LineTraceMultiByChannel(DebugHits, Start, End, InteractionTraceChannel, Params);
+		const bool bAnyHit = DebugHits.Num() > 0;
+		DrawDebugLine(
+			GetWorld(),
+			Start,
+			End,
+			bAnyHit ? FColor::Green : FColor::Red,
+			false,
+			InteractionDebugDrawTime,
+			0,
+			1.5f);
+		for (const FHitResult& DH : DebugHits)
+		{
+			DrawDebugSphere(GetWorld(), DH.ImpactPoint, 6.f, 8, FColor::Yellow, false, InteractionDebugDrawTime, 0, 1.f);
+		}
+		if (NewFocus)
+		{
+			DrawDebugString(GetWorld(), End, FString::Printf(TEXT("Focus: %s"), *NewFocus->GetName()), nullptr, FColor::Cyan, InteractionDebugDrawTime);
+		}
+	}
+
+	SetInteractableFocus(NewFocus);
+}
+
+void AParadiseSurvivalCharacter::SetInteractableFocus(AActor* NewFocus)
+{
+	AActor* Previous = FocusedInteractable.Get();
+	if (Previous == NewFocus)
+	{
+		return;
+	}
+
+	FocusedInteractable = NewFocus;
+	OnInteractableFocusChanged.Broadcast(NewFocus);
+	RefreshInteractionPromptVisibility();
+}
+
+void AParadiseSurvivalCharacter::EnsureInteractionPromptWidget()
+{
+	if (InteractionPromptWidget || !InteractionPromptWidgetClass)
+	{
+		return;
+	}
+
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (!PC)
+	{
+		return;
+	}
+
+	InteractionPromptWidget = CreateWidget<UUserWidget>(PC, InteractionPromptWidgetClass);
+}
+
+void AParadiseSurvivalCharacter::RefreshInteractionPromptVisibility()
+{
+	if (!InteractionPromptWidgetClass)
+	{
+		return;
+	}
+
+	EnsureInteractionPromptWidget();
+	if (!InteractionPromptWidget)
+	{
+		return;
+	}
+
+	if (FocusedInteractable.IsValid())
+	{
+		if (!InteractionPromptWidget->IsInViewport())
+		{
+			InteractionPromptWidget->AddToViewport();
+		}
+		InteractionPromptWidget->SetVisibility(ESlateVisibility::Visible);
+	}
+	else
+	{
+		InteractionPromptWidget->SetVisibility(ESlateVisibility::Collapsed);
+		if (InteractionPromptWidget->IsInViewport())
+		{
+			InteractionPromptWidget->RemoveFromParent();
+		}
+	}
 }
 
