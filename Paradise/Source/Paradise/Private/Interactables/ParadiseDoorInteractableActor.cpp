@@ -91,6 +91,14 @@ void AParadiseDoorInteractableActor::OnRep_IsOpen()
 	StartDoorAnimation(bIsOpen);
 }
 
+void AParadiseDoorInteractableActor::ReactToWeaponHit_Implementation(AActor* HitInstigator, const FHitResult& Hit, float HitStrength)
+{
+	if (HitSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, HitSound, Hit.ImpactPoint, GetActorRotation(), HitSoundVolumeMultiplier);
+	}
+}
+
 void AParadiseDoorInteractableActor::StartDoorAnimation(bool bOpen)
 {
 	if (!DoorMesh)

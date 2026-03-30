@@ -3,6 +3,8 @@
 #include "Characters/ParadiseEnemyCharacter.h"
 #include "AIController.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundBase.h"
 
 AParadiseEnemyCharacter::AParadiseEnemyCharacter()
 {
@@ -14,5 +16,13 @@ AParadiseEnemyCharacter::AParadiseEnemyCharacter()
 	{
 		MoveComp->bUseControllerDesiredRotation = false;
 		MoveComp->bOrientRotationToMovement = true;
+	}
+}
+
+void AParadiseEnemyCharacter::ReactToWeaponHit_Implementation(AActor* HitInstigator, const FHitResult& Hit, float HitStrength)
+{
+	if (WeaponHitSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, WeaponHitSound, Hit.ImpactPoint, GetActorRotation(), WeaponHitSoundVolumeMultiplier);
 	}
 }

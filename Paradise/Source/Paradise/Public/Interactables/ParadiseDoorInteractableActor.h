@@ -4,13 +4,14 @@
 
 #include "CoreMinimal.h"
 #include "Interactables/ParadiseInteractableActorBase.h"
+#include "Interfaces/ParadiseWeaponHitReactable.h"
 #include "ParadiseDoorInteractableActor.generated.h"
 
 class UStaticMeshComponent;
 class USoundBase;
 
 UCLASS(Blueprintable)
-class PARADISE_API AParadiseDoorInteractableActor : public AParadiseInteractableActorBase
+class PARADISE_API AParadiseDoorInteractableActor : public AParadiseInteractableActorBase, public IParadiseWeaponHitReactable
 {
 	GENERATED_BODY()
 
@@ -20,8 +21,9 @@ public:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaSeconds) override;
 
-	// 인터랙션 시 문을 열/닫습니다(토글).
 	virtual void Interact_Implementation(AActor* Interactor) override;
+
+	virtual void ReactToWeaponHit_Implementation(AActor* HitInstigator, const FHitResult& Hit, float HitStrength) override;
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
@@ -55,6 +57,12 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sound", meta = (ClampMin = "0.0"))
 	float OpenSoundVolumeMultiplier = 1.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sound")
+	TObjectPtr<USoundBase> HitSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sound", meta = (ClampMin = "0.0"))
+	float HitSoundVolumeMultiplier = 1.f;
 
 	/** 애니메이션용. */
 	bool bIsAnimating = false;
