@@ -5,8 +5,10 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
 #include "Blueprint/UserWidget.h"
+#include "Blueprint/WidgetLayoutLibrary.h"
 #include "Camera/PlayerCameraManager.h"
 #include "Components/PrimitiveComponent.h"
+#include "Components/CanvasPanelSlot.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Interfaces/ParadiseInteractable.h"
@@ -81,6 +83,30 @@ static AActor* FindFirstInteractableAlongRay(
 		}
 	}
 	return nullptr;
+}
+
+static bool FindFirstInteractableAlongRayHit(
+	UWorld* World,
+	const FVector& Start,
+	const FVector& End,
+	ECollisionChannel Channel,
+	const FCollisionQueryParams& Params,
+	AActor*& OutActor,
+	FVector& OutImpactPoint)
+{
+	OutActor = nullptr;
+	OutImpactPoint = FVector::ZeroVector;
+
+	for (const FHitResult& Hit : GatherSortedHits(World, Start, End, Channel, Params))
+	{
+		if (AActor* Found = ResolveInteractableFromHit(Hit))
+		{
+			OutActor = Found;
+			OutImpactPoint = Hit.ImpactPoint;
+			return true;
+		}
+	}
+	return false;
 }
 
 static bool IsTargetAlongInteractRay(
@@ -662,22 +688,9 @@ bool AParadiseSurvivalCharacter::ValidateInteractTarget(AActor* Target) const
 	}
 
 	FVector TraceStart;
-	FVector TraceEnd;
-	const APlayerController* PC = Cast<APlayerController>(GetController());
-	if (PC && PC->PlayerCameraManager)
-	{
-		const FVector Dir = PC->PlayerCameraManager->GetCameraRotation().Vector();
-		TraceStart = PC->PlayerCameraManager->GetCameraLocation();
-		TraceEnd = TraceStart + Dir * InteractionTraceDistance;
-	}
-	else
-	{
-		FVector EyeLocation;
-		FRotator EyeRotation;
-		GetActorEyesViewPoint(EyeLocation, EyeRotation);
-		TraceStart = EyeLocation;
-		TraceEnd = EyeLocation + EyeRotation.Vector() * InteractionTraceDistance;
-	}
+	FRotator UnusedRot;
+	GetActorEyesViewPoint(TraceStart, UnusedRot);
+	const FVector TraceEnd = TraceStart + GetActorForwardVector() * InteractionTraceDistance;
 
 	FCollisionQueryParams Params(SCENE_QUERY_STAT(InteractionValidate), true);
 	Params.AddIgnoredActor(this);
@@ -693,35 +706,31 @@ bool AParadiseSurvivalCharacter::ValidateInteractTarget(AActor* Target) const
 		return true;
 	}
 
-	if (!PC || !PC->PlayerCameraManager)
-	{
-		const float MaxDist = InteractionTraceDistance + 150.f;
-		return FVector::DistSquared(GetActorLocation(), Target->GetActorLocation()) <= FMath::Square(MaxDist);
-	}
 	return false;
 }
 
 void AParadiseSurvivalCharacter::UpdateInteractionFocus()
 {
-	APlayerController* PC = Cast<APlayerController>(GetController());
-	if (!PC || !PC->PlayerCameraManager)
-	{
-		SetInteractableFocus(nullptr);
-		return;
-	}
-
-	const FVector Start = PC->PlayerCameraManager->GetCameraLocation();
-	const FVector End = Start + PC->PlayerCameraManager->GetCameraRotation().Vector() * InteractionTraceDistance;
+	FVector Start;
+	FRotator UnusedRot;
+	GetActorEyesViewPoint(Start, UnusedRot);
+	const FVector End = Start + GetActorForwardVector() * InteractionTraceDistance;
 
 	FCollisionQueryParams Params(SCENE_QUERY_STAT(InteractionFocus), true);
 	Params.AddIgnoredActor(this);
 
-	AActor* NewFocus = ParadiseInteractionTrace::FindFirstInteractableAlongRay(
+	AActor* NewFocus = nullptr;
+	FVector NewImpactPoint = FVector::ZeroVector;
+	ParadiseInteractionTrace::FindFirstInteractableAlongRayHit(
 		GetWorld(),
 		Start,
 		End,
 		InteractionTraceChannel,
-		Params);
+		Params,
+		NewFocus,
+		NewImpactPoint);
+
+	FocusedInteractableImpactPoint = NewImpactPoint;
 
 	if (bDebugInteractionTrace && GetWorld())
 	{
@@ -748,6 +757,24 @@ void AParadiseSurvivalCharacter::UpdateInteractionFocus()
 	}
 
 	SetInteractableFocus(NewFocus);
+
+	if (NewFocus && InteractionPromptWidgetClass)
+	{
+		EnsureInteractionPromptWidget();
+		if (InteractionPromptWidget)
+		{
+			APlayerController* PC = Cast<APlayerController>(GetController());
+			if (PC)
+			{
+				FVector2D WidgetPos;
+				if (UWidgetLayoutLibrary::ProjectWorldLocationToWidgetPosition(PC, NewImpactPoint, WidgetPos, false))
+				{
+					WidgetPos.Y -= InteractionPromptWidgetOffsetY;
+					InteractionPromptWidget->SetPositionInViewport(WidgetPos, false);
+				}
+			}
+		}
+	}
 }
 
 void AParadiseSurvivalCharacter::SetInteractableFocus(AActor* NewFocus)

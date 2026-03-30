@@ -85,6 +85,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Interaction|UI")
 	TSubclassOf<UUserWidget> InteractionPromptWidgetClass;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Interaction|UI")
+	float InteractionPromptWidgetOffsetY = 20.f;
+
 	// 무기 없을 때 사용할 주먹 공격 몽타주
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
 	UAnimMontage* FistAttackMontage;
@@ -187,6 +190,9 @@ protected:
 
 	UPROPERTY(Transient)
 	TWeakObjectPtr<AActor> FocusedInteractable;
+
+	UPROPERTY(Transient)
+	FVector FocusedInteractableImpactPoint = FVector::ZeroVector;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UUserWidget> InteractionPromptWidget;
