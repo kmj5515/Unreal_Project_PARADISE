@@ -7,6 +7,7 @@
 #include "ParadiseDoorInteractableActor.generated.h"
 
 class UStaticMeshComponent;
+class USoundBase;
 
 UCLASS(Blueprintable)
 class PARADISE_API AParadiseDoorInteractableActor : public AParadiseInteractableActorBase
@@ -48,6 +49,12 @@ protected:
 	void OnRep_IsOpen();
 
 	void StartDoorAnimation(bool bOpen);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sound")
+	TObjectPtr<USoundBase> OpenSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sound", meta = (ClampMin = "0.0"))
+	float OpenSoundVolumeMultiplier = 1.f;
 
 	/** 애니메이션용. */
 	bool bIsAnimating = false;

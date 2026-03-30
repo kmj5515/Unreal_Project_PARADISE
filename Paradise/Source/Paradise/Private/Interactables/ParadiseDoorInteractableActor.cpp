@@ -4,7 +4,9 @@
 
 #include "Components/StaticMeshComponent.h"
 #include "Components/SceneComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
+#include "Sound/SoundBase.h"
 
 AParadiseDoorInteractableActor::AParadiseDoorInteractableActor()
 {
@@ -81,6 +83,11 @@ void AParadiseDoorInteractableActor::Interact_Implementation(AActor* Interactor)
 
 void AParadiseDoorInteractableActor::OnRep_IsOpen()
 {
+	if (OpenSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, OpenSound, GetActorLocation(), GetActorRotation(), OpenSoundVolumeMultiplier);
+	}
+
 	StartDoorAnimation(bIsOpen);
 }
 
