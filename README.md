@@ -30,7 +30,8 @@
 - [ ] 파쿠르 실패/불가 피드백(UI 또는 디버그 텍스트) 추가
 - [ ] 근접 공격 히트 판정 및 데미지 연동 최종 검증
 - [ ] 원거리 공격 히트 판정 및 데미지 연동 최종 검증
-- [ ] HUD 최소 버전 (체력 + 상호작용 프롬프트)
+- [x] HUD 최소 버전: 상호작용 프롬프트 위젯 표시 (C++ 구현, 위젯 BP 지정 필요)
+- [ ] HUD 최소 버전: 체력 표시
 
 ---
 
@@ -49,9 +50,11 @@
 ## 4) 월드 인터랙션 목표 기능
 목표: 맵 오브젝트가 게임플레이를 만든다는 인상을 주기.
 
-- [ ] 자동차 공격 시 사이렌 ON (소리 발생 + 좀비 어그로 유도)
-- [ ] 문 타격 시 소리 이벤트 발생 (좀비 청각 반응)
+- [x] 자동차 공격 시 사이렌 ON (C++: `AParadiseBrokenCarHitReactActor`, 사운드 에셋 지정 필요)
+- [x] 문 타격 시 소리 이벤트 발생 (C++: `AParadiseDoorInteractableActor::HitSound`, 사운드 에셋 지정 필요)
 - [x] 무기 히트 수신 공통 인터페이스 (`IParadiseWeaponHitReactable` — 맵 액터에서 `ReactToWeaponHit` 구현)
+- [x] Enemy 타격 시 사운드 재생 (C++: `AParadiseEnemyCharacter::WeaponHitSound`, 사운드 에셋 지정 필요)
+- [ ] 소리 -> 좀비 청각(Perception) 어그로 유도 연결 (서버에서 노이즈 이벤트 규격화)
 
 ---
 
