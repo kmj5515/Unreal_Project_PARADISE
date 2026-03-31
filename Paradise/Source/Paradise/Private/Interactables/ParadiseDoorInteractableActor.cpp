@@ -5,6 +5,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Components/SceneComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Perception/AISense_Hearing.h"
 #include "Net/UnrealNetwork.h"
 #include "Sound/SoundBase.h"
 
@@ -96,6 +97,11 @@ void AParadiseDoorInteractableActor::ReactToWeaponHit_Implementation(AActor* Hit
 	if (HitSound)
 	{
 		UGameplayStatics::PlaySoundAtLocation(this, HitSound, Hit.ImpactPoint, GetActorRotation(), HitSoundVolumeMultiplier);
+	}
+
+	if (HasAuthority() && GetWorld())
+	{
+		UAISense_Hearing::ReportNoiseEvent(GetWorld(), Hit.ImpactPoint, 1.f, HitInstigator ? HitInstigator : this, 2000.f);
 	}
 }
 

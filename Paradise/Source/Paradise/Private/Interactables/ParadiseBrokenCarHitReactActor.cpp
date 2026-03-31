@@ -6,6 +6,7 @@
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "Perception/AISense_Hearing.h"
 #include "Sound/SoundBase.h"
 
 AParadiseBrokenCarHitReactActor::AParadiseBrokenCarHitReactActor()
@@ -56,6 +57,11 @@ void AParadiseBrokenCarHitReactActor::ReactToWeaponHit_Implementation(AActor* Hi
 	}
 
 	OnRep_SirenOn();
+
+	if (GetWorld())
+	{
+		UAISense_Hearing::ReportNoiseEvent(GetWorld(), Hit.ImpactPoint, 1.f, HitInstigator ? HitInstigator : this, 2000.f);
+	}
 }
 
 void AParadiseBrokenCarHitReactActor::OnRep_SirenOn()
