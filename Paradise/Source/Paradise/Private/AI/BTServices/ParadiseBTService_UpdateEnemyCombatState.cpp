@@ -10,7 +10,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogParadiseEnemyBTService, Log, All);
 UParadiseBTService_UpdateEnemyCombatState::UParadiseBTService_UpdateEnemyCombatState()
 {
 	NodeName = TEXT("Update Enemy Combat State");
-	Interval = 0.1f;
+	Interval = 0.25f;
 }
 
 void UParadiseBTService_UpdateEnemyCombatState::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)

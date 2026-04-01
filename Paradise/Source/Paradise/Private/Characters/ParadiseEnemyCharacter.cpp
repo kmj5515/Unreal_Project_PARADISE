@@ -25,6 +25,7 @@ AParadiseEnemyCharacter::AParadiseEnemyCharacter()
 	{
 		MoveComp->bUseControllerDesiredRotation = false;
 		MoveComp->bOrientRotationToMovement = true;
+		MoveComp->MaxWalkSpeed = 70.f;
 	}
 }
 
