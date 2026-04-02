@@ -32,7 +32,7 @@ protected:
 	TObjectPtr<UAISenseConfig_Hearing> HearingConfig;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AI|Combat")
-	float AttackTriggerDistance = 50.f;
+	float AttackTriggerDistance = 20.f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI|Behavior")
 	TObjectPtr<UBehaviorTree> EnemyBehaviorTree;

@@ -43,7 +43,7 @@ protected:
 	TSubclassOf<class UGameplayEffect> EnemyAttackDamageEffectClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
-	float EnemyAttackDistance = 150.f;
+	float EnemyAttackDistance = 50.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
 	float EnemyAttackRadius = 35.f;
