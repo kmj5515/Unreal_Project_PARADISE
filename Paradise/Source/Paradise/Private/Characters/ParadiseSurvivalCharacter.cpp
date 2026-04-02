@@ -145,7 +145,7 @@ AParadiseSurvivalCharacter::AParadiseSurvivalCharacter()
 
 	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
 	{
-		MoveComp->MaxWalkSpeed = 230.f;
+		MoveComp->MaxWalkSpeed = WalkSpeed;
 	}
 }
 
@@ -291,15 +291,26 @@ void AParadiseSurvivalCharacter::Input_RunPressed(const FInputActionValue& Value
 {
 	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
 	{
-		MoveComp->MaxWalkSpeed = 500.f;
+		// 즉각 반응을 위해 로컬에서도 먼저 반영(오토노머스 프록시 예측)
+		MoveComp->MaxWalkSpeed = RunSpeed;
 	}
+	ServerSetRunning(true);
 }
 
 void AParadiseSurvivalCharacter::Input_RunReleased(const FInputActionValue& Value)
 {
 	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
 	{
-		MoveComp->MaxWalkSpeed = 230.f;
+		MoveComp->MaxWalkSpeed = WalkSpeed;
+	}
+	ServerSetRunning(false);
+}
+
+void AParadiseSurvivalCharacter::ServerSetRunning_Implementation(bool bNewRunning)
+{
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		MoveComp->MaxWalkSpeed = bNewRunning ? RunSpeed : WalkSpeed;
 	}
 }
 

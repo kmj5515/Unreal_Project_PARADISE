@@ -33,6 +33,12 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 protected:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement", meta = (ClampMin = "0.0"))
+	float WalkSpeed = 230.f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement", meta = (ClampMin = "0.0"))
+	float RunSpeed = 500.f;
+
 	// Enhanced Input: Mapping Context & Actions (BP에서 세팅)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	UInputMappingContext* DefaultMappingContext;
@@ -153,6 +159,10 @@ public:
 
 	UFUNCTION(Server, Reliable)
 	void ServerInteract(AActor* Target);
+
+	// 달리기 상태 변경 (클라이언트 → 서버). 서버 권한에서 MaxWalkSpeed를 변경해야 보정(러버밴딩)이 안 생김.
+	UFUNCTION(Server, Reliable)
+	void ServerSetRunning(bool bNewRunning);
 
 protected:
 	UFUNCTION(NetMulticast, Reliable)
