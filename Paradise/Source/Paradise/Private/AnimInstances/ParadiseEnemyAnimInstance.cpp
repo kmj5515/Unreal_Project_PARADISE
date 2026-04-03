@@ -3,6 +3,8 @@
 #include "AnimInstances/ParadiseEnemyAnimInstance.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Characters/ParadiseEnemyCharacter.h"
+#include "AbilitySystem/ParadiseAttributeSet.h"
 
 void UParadiseEnemyAnimInstance::NativeInitializeAnimation()
 {
@@ -48,4 +50,21 @@ void UParadiseEnemyAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	const FVector LateralVelocity(Velocity.X, Velocity.Y, 0.f);
 	GroundSpeed = LateralVelocity.Size();
 	IsFalling = OwningMovementComponent->IsFalling();
+}
+
+float UParadiseEnemyAnimInstance::GetEnemyHealth() const
+{
+	const AParadiseEnemyCharacter* EnemyCharacter = Cast<AParadiseEnemyCharacter>(OwningCharacter);
+	if (!EnemyCharacter)
+	{
+		return 0.f;
+	}
+
+	const UParadiseAttributeSet* AttributeSet = EnemyCharacter->GetParadiseAttributeSet();
+	if (!AttributeSet)
+	{
+		return 0.f;
+	}
+
+	return AttributeSet->Health.GetCurrentValue();
 }

@@ -21,6 +21,10 @@ public:
 	virtual void NativeInitializeAnimation() override;
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 
+	/** 현재 적 캐릭터의 체력을 반환 (AnimBP 등에서 사용) */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AnimData|Status")
+	float GetEnemyHealth() const;
+
 protected:
 	UPROPERTY()
 	ACharacter* OwningCharacter = nullptr;
