@@ -10,7 +10,8 @@ void AMenuPlayerController::BeginPlay()
 	SetInputMode(FInputModeUIOnly());
 	SetShowMouseCursor(true);
 
-	if (HasAuthority() && IsLocalPlayerController())
+	// 로컬 UI는 권한과 무관하게 로컬 PC에서만 띄움 (리슨 서버/클라 모두)
+	if (IsLocalPlayerController())
 	{
 		SpawnWidget();
 	}
@@ -27,12 +28,14 @@ void AMenuPlayerController::OnRep_PlayerState()
 
 void AMenuPlayerController::SpawnWidget()
 {
-	if (MenuWidgetClass)
+	if (MenuWidget || !MenuWidgetClass)
 	{
-		MenuWidget = CreateWidget<UUserWidget>(this, MenuWidgetClass);
-		if (MenuWidget)
-		{
-			MenuWidget->AddToViewport();
-		}
+		return;
+	}
+
+	MenuWidget = CreateWidget<UUserWidget>(this, MenuWidgetClass);
+	if (MenuWidget)
+	{
+		MenuWidget->AddToViewport();
 	}
 }

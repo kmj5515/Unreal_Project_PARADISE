@@ -18,13 +18,13 @@ public:
 	virtual void BeginPlay() override;
 	virtual void OnRep_PlayerState() override;
 
-private:
+protected:
+	/** 로비/메인메뉴 등 — C++ 자식 클래스 기본값에서도 에디터에 노출되도록 protected */
 	UPROPERTY(EditDefaultsOnly, Category = "Menu")
 	TSubclassOf<UUserWidget> MenuWidgetClass;
 
 	UPROPERTY()
-	UUserWidget* MenuWidget;
+	TObjectPtr<UUserWidget> MenuWidget;
 
 	void SpawnWidget();
-
 };
