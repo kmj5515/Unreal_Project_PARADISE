@@ -21,6 +21,12 @@ private:
 	UFUNCTION()
 	void OnCloseClicked();
 
+	UFUNCTION()
+	void OnBackToLobbyClicked();
+
 	UPROPERTY(meta = (BindWidgetOptional))
 	class UButton* CloseShopButton;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	class UButton* BackToLobbyButton;
 };

@@ -11,9 +11,19 @@ void ULobbyShopUserWidget::NativeConstruct()
 	{
 		CloseShopButton->OnClicked.AddDynamic(this, &ULobbyShopUserWidget::OnCloseClicked);
 	}
+
+	if (BackToLobbyButton)
+	{
+		BackToLobbyButton->OnClicked.AddDynamic(this, &ULobbyShopUserWidget::OnBackToLobbyClicked);
+	}
 }
 
 void ULobbyShopUserWidget::OnCloseClicked()
+{
+	RemoveFromParent();
+}
+
+void ULobbyShopUserWidget::OnBackToLobbyClicked()
 {
 	RemoveFromParent();
 }
