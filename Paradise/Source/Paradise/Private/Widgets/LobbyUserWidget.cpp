@@ -89,6 +89,7 @@ void ULobbyUserWidget::OnOpenShopClicked()
 
 	if (ShopWidgetInstance && !ShopWidgetInstance->IsInViewport())
 	{
+		ShopWidgetInstance->RefreshShopItems();
 		ShopWidgetInstance->AddToViewport(200);
 	}
 }

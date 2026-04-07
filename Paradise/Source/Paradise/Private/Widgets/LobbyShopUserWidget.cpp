@@ -2,6 +2,9 @@
 
 #include "Widgets/LobbyShopUserWidget.h"
 #include "Components/Button.h"
+#include "Components/PanelWidget.h"
+#include "Engine/DataTable.h"
+#include "Widgets/LobbyShopItemEntryWidget.h"
 
 void ULobbyShopUserWidget::NativeConstruct()
 {
@@ -15,6 +18,49 @@ void ULobbyShopUserWidget::NativeConstruct()
 	if (BackToLobbyButton)
 	{
 		BackToLobbyButton->OnClicked.AddDynamic(this, &ULobbyShopUserWidget::OnBackToLobbyClicked);
+	}
+
+	PopulateShopItems();
+}
+
+void ULobbyShopUserWidget::RefreshShopItems()
+{
+	PopulateShopItems();
+}
+
+void ULobbyShopUserWidget::PopulateShopItems()
+{
+	if (!ItemListPanel || !ShopItemsDataTable || !ShopItemEntryWidgetClass)
+	{
+		return;
+	}
+
+	APlayerController* PC = GetOwningPlayer();
+	if (!PC)
+	{
+		return;
+	}
+
+	ItemListPanel->ClearChildren();
+
+	TArray<FShopItemDataRow*> ItemRows;
+	ShopItemsDataTable->GetAllRows(TEXT("LobbyShopItems"), ItemRows);
+
+	for (const FShopItemDataRow* ItemRow : ItemRows)
+	{
+		if (!ItemRow)
+		{
+			continue;
+		}
+
+		ULobbyShopItemEntryWidget* ItemEntry = CreateWidget<ULobbyShopItemEntryWidget>(PC, ShopItemEntryWidgetClass);
+		if (!ItemEntry)
+		{
+			continue;
+		}
+
+		ItemEntry->SetItemData(*ItemRow);
+		ItemListPanel->AddChild(ItemEntry);
 	}
 }
 
